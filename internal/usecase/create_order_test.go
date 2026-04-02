@@ -2,19 +2,8 @@ package usecase
 
 import (
 	"testing"
-	"time"
 	"github.com/reinaldosaraiva/clean-arch/pkg/events"
 )
-
-type MockEvent struct {
-	name    string
-	payload any
-}
-
-func (e *MockEvent) GetName() string        { return e.name }
-func (e *MockEvent) GetDateTime() time.Time { return time.Now() }
-func (e *MockEvent) GetPayload() any        { return e.payload }
-func (e *MockEvent) SetPayload(p any)       { e.payload = p }
 
 type MockEventDispatcher struct{}
 
@@ -32,9 +21,8 @@ func (d *MockEventDispatcher) Clear() error { return nil }
 
 func TestCreateOrderUseCase_Execute(t *testing.T) {
 	repo := &MockOrderRepository{}
-	event := &MockEvent{name: "OrderCreated"}
 	dispatcher := &MockEventDispatcher{}
-	uc := NewCreateOrderUseCase(repo, event, dispatcher)
+	uc := NewCreateOrderUseCase(repo, dispatcher)
 
 	input := OrderInputDTO{ID: "order-1", Price: 100.0, Tax: 10.0}
 	output, err := uc.Execute(input)

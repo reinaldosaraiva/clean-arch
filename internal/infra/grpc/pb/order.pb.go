@@ -24,8 +24,8 @@ const (
 type CreateOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Price         float32                `protobuf:"fixed32,2,opt,name=price,proto3" json:"price,omitempty"`
-	Tax           float32                `protobuf:"fixed32,3,opt,name=tax,proto3" json:"tax,omitempty"`
+	Price         float64                `protobuf:"fixed64,2,opt,name=price,proto3" json:"price,omitempty"`
+	Tax           float64                `protobuf:"fixed64,3,opt,name=tax,proto3" json:"tax,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -67,14 +67,14 @@ func (x *CreateOrderRequest) GetId() string {
 	return ""
 }
 
-func (x *CreateOrderRequest) GetPrice() float32 {
+func (x *CreateOrderRequest) GetPrice() float64 {
 	if x != nil {
 		return x.Price
 	}
 	return 0
 }
 
-func (x *CreateOrderRequest) GetTax() float32 {
+func (x *CreateOrderRequest) GetTax() float64 {
 	if x != nil {
 		return x.Tax
 	}
@@ -84,9 +84,9 @@ func (x *CreateOrderRequest) GetTax() float32 {
 type CreateOrderResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Price         float32                `protobuf:"fixed32,2,opt,name=price,proto3" json:"price,omitempty"`
-	Tax           float32                `protobuf:"fixed32,3,opt,name=tax,proto3" json:"tax,omitempty"`
-	FinalPrice    float32                `protobuf:"fixed32,4,opt,name=final_price,json=finalPrice,proto3" json:"final_price,omitempty"`
+	Price         float64                `protobuf:"fixed64,2,opt,name=price,proto3" json:"price,omitempty"`
+	Tax           float64                `protobuf:"fixed64,3,opt,name=tax,proto3" json:"tax,omitempty"`
+	FinalPrice    float64                `protobuf:"fixed64,4,opt,name=final_price,json=finalPrice,proto3" json:"final_price,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -128,21 +128,21 @@ func (x *CreateOrderResponse) GetId() string {
 	return ""
 }
 
-func (x *CreateOrderResponse) GetPrice() float32 {
+func (x *CreateOrderResponse) GetPrice() float64 {
 	if x != nil {
 		return x.Price
 	}
 	return 0
 }
 
-func (x *CreateOrderResponse) GetTax() float32 {
+func (x *CreateOrderResponse) GetTax() float64 {
 	if x != nil {
 		return x.Tax
 	}
 	return 0
 }
 
-func (x *CreateOrderResponse) GetFinalPrice() float32 {
+func (x *CreateOrderResponse) GetFinalPrice() float64 {
 	if x != nil {
 		return x.FinalPrice
 	}
@@ -236,13 +236,13 @@ const file_order_proto_rawDesc = "" +
 	"\vorder.proto\x12\x02pb\"L\n" +
 	"\x12CreateOrderRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
-	"\x05price\x18\x02 \x01(\x02R\x05price\x12\x10\n" +
-	"\x03tax\x18\x03 \x01(\x02R\x03tax\"n\n" +
+	"\x05price\x18\x02 \x01(\x01R\x05price\x12\x10\n" +
+	"\x03tax\x18\x03 \x01(\x01R\x03tax\"n\n" +
 	"\x13CreateOrderResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
-	"\x05price\x18\x02 \x01(\x02R\x05price\x12\x10\n" +
-	"\x03tax\x18\x03 \x01(\x02R\x03tax\x12\x1f\n" +
-	"\vfinal_price\x18\x04 \x01(\x02R\n" +
+	"\x05price\x18\x02 \x01(\x01R\x05price\x12\x10\n" +
+	"\x03tax\x18\x03 \x01(\x01R\x03tax\x12\x1f\n" +
+	"\vfinal_price\x18\x04 \x01(\x01R\n" +
 	"finalPrice\"\x13\n" +
 	"\x11ListOrdersRequest\"E\n" +
 	"\x12ListOrdersResponse\x12/\n" +

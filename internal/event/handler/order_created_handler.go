@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"github.com/reinaldosaraiva/clean-arch/pkg/events"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type OrderCreatedHandler struct {

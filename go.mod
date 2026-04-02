@@ -7,8 +7,8 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/wire v0.7.0
+	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/spf13/viper v1.21.0
-	github.com/streadway/amqp v1.1.0
 	github.com/vektah/gqlparser/v2 v2.5.32
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11

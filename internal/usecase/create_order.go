@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"github.com/reinaldosaraiva/clean-arch/internal/entity"
+	"github.com/reinaldosaraiva/clean-arch/internal/event"
 	"github.com/reinaldosaraiva/clean-arch/pkg/events"
 )
 
@@ -19,19 +20,16 @@ type OrderOutputDTO struct {
 }
 
 type CreateOrderUseCase struct {
-	OrderRepository entity.OrderRepositoryInterface
-	OrderCreated    events.EventInterface
-	EventDispatcher events.EventDispatcherInterface
+	OrderRepository  entity.OrderRepositoryInterface
+	EventDispatcher  events.EventDispatcherInterface
 }
 
 func NewCreateOrderUseCase(
 	orderRepository entity.OrderRepositoryInterface,
-	orderCreated events.EventInterface,
 	eventDispatcher events.EventDispatcherInterface,
 ) *CreateOrderUseCase {
 	return &CreateOrderUseCase{
 		OrderRepository: orderRepository,
-		OrderCreated:    orderCreated,
 		EventDispatcher: eventDispatcher,
 	}
 }
@@ -53,7 +51,9 @@ func (c *CreateOrderUseCase) Execute(input OrderInputDTO) (OrderOutputDTO, error
 		Tax:        order.Tax,
 		FinalPrice: order.FinalPrice,
 	}
-	c.OrderCreated.SetPayload(dto)
-	c.EventDispatcher.Dispatch(c.OrderCreated)
+	// Instantiate a new event per execution to avoid shared-state race condition
+	orderCreatedEvent := event.NewOrderCreated()
+	orderCreatedEvent.SetPayload(dto)
+	c.EventDispatcher.Dispatch(orderCreatedEvent)
 	return dto, nil
 }
