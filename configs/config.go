@@ -22,8 +22,8 @@ func LoadConfig(path string) (*conf, error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
-	// ReadInConfig is optional: if .env is absent, environment variables
-	// injected by docker-compose (via AutomaticEnv) are used instead.
+	// ReadInConfig is optional: if .env is absent (e.g. inside Docker),
+	// environment variables injected via docker-compose take precedence.
 	_ = viper.ReadInConfig()
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
