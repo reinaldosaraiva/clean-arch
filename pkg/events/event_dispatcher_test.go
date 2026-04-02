@@ -9,13 +9,13 @@ import (
 // TestEvent is a mock event for testing
 type TestEvent struct {
 	Name    string
-	Payload interface{}
+	Payload any
 }
 
-func (e *TestEvent) GetName() string        { return e.Name }
-func (e *TestEvent) GetDateTime() time.Time { return time.Now() }
-func (e *TestEvent) GetPayload() interface{} { return e.Payload }
-func (e *TestEvent) SetPayload(p interface{}) { e.Payload = p }
+func (e *TestEvent) GetName() string         { return e.Name }
+func (e *TestEvent) GetDateTime() time.Time  { return time.Now() }
+func (e *TestEvent) GetPayload() any         { return e.Payload }
+func (e *TestEvent) SetPayload(p any)        { e.Payload = p }
 
 // TestEventHandler is a mock handler for testing
 type TestEventHandler struct {

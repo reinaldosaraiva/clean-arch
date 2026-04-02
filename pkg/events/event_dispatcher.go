@@ -2,6 +2,7 @@ package events
 
 import (
 	"errors"
+	"slices"
 	"sync"
 )
 
@@ -18,12 +19,8 @@ func NewEventDispatcher() *EventDispatcher {
 }
 
 func (ed *EventDispatcher) Register(eventName string, handler EventHandlerInterface) error {
-	if _, ok := ed.handlers[eventName]; ok {
-		for _, h := range ed.handlers[eventName] {
-			if h == handler {
-				return ErrHandlerAlreadyRegistered
-			}
-		}
+	if slices.Contains(ed.handlers[eventName], handler) {
+		return ErrHandlerAlreadyRegistered
 	}
 	ed.handlers[eventName] = append(ed.handlers[eventName], handler)
 	return nil
@@ -54,14 +51,7 @@ func (ed *EventDispatcher) Remove(eventName string, handler EventHandlerInterfac
 }
 
 func (ed *EventDispatcher) Has(eventName string, handler EventHandlerInterface) bool {
-	if _, ok := ed.handlers[eventName]; ok {
-		for _, h := range ed.handlers[eventName] {
-			if h == handler {
-				return true
-			}
-		}
-	}
-	return false
+	return slices.Contains(ed.handlers[eventName], handler)
 }
 
 func (ed *EventDispatcher) Clear() error {
