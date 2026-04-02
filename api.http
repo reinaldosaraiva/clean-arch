@@ -1,0 +1,61 @@
+### ==========================================
+### CREATE ORDER — REST
+### ==========================================
+
+POST http://localhost:8000/order
+Content-Type: application/json
+
+{
+  "ID": "order-001",
+  "Price": 100.50,
+  "Tax": 10.50
+}
+
+###
+
+POST http://localhost:8000/order
+Content-Type: application/json
+
+{
+  "ID": "order-002",
+  "Price": 200.00,
+  "Tax": 20.00
+}
+
+### ==========================================
+### LIST ORDERS — REST
+### ==========================================
+
+GET http://localhost:8000/order
+
+### ==========================================
+### CREATE ORDER — GraphQL
+### ==========================================
+
+POST http://localhost:8080/query
+Content-Type: application/json
+
+{
+  "query": "mutation { createOrder(input: { id: \"order-003\", price: 50.0, tax: 5.0 }) { id price tax finalPrice } }"
+}
+
+### ==========================================
+### LIST ORDERS — GraphQL
+### ==========================================
+
+POST http://localhost:8080/query
+Content-Type: application/json
+
+{
+  "query": "{ listOrders { id price tax finalPrice } }"
+}
+
+### ==========================================
+### gRPC — usar grpcurl (instalar com: brew install grpcurl)
+### ==========================================
+
+### CreateOrder via gRPC:
+### grpcurl -plaintext -d '{"id":"order-004","price":75.0,"tax":7.5}' localhost:50051 pb.OrderService/CreateOrder
+
+### ListOrders via gRPC:
+### grpcurl -plaintext localhost:50051 pb.OrderService/ListOrders
