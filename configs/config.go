@@ -22,9 +22,16 @@ func LoadConfig(path string) (*conf, error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
-	// ReadInConfig is optional: if .env is absent (e.g. inside Docker),
-	// environment variables injected via docker-compose take precedence.
+	// ReadInConfig is optional: absent in Docker where env vars are injected directly.
 	_ = viper.ReadInConfig()
+	// BindEnv registers each key so that Unmarshal picks up env vars even
+	// when no config file is present (AutomaticEnv alone is not enough for Unmarshal).
+	for _, key := range []string{
+		"DB_DRIVER", "DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME",
+		"WEB_SERVER_PORT", "GRPC_SERVER_PORT", "GRAPHQL_SERVER_PORT", "RABBITMQ_DSN",
+	} {
+		_ = viper.BindEnv(key)
+	}
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
