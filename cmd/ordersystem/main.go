@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/reinaldosaraiva/clean-arch/configs"
-	"github.com/reinaldosaraiva/clean-arch/internal/event"
 	"github.com/reinaldosaraiva/clean-arch/internal/event/handler"
 	"github.com/reinaldosaraiva/clean-arch/internal/infra/database"
 	"github.com/reinaldosaraiva/clean-arch/internal/infra/graph"
@@ -21,7 +21,7 @@ import (
 	"github.com/reinaldosaraiva/clean-arch/internal/infra/web/webserver"
 	"github.com/reinaldosaraiva/clean-arch/internal/usecase"
 	"github.com/reinaldosaraiva/clean-arch/pkg/events"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -32,41 +32,45 @@ func main() {
 	// Config
 	cfg, err := configs.LoadConfig(".")
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to load config: %v", err)
 	}
 
 	// MySQL
 	db, err := sql.Open(cfg.DBDriver, fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
 		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName))
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to open database: %v", err)
 	}
 	defer db.Close()
+	if err := db.Ping(); err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
 
 	// RabbitMQ
 	rabbitConn, err := amqp.Dial(cfg.RabbitMQDSN)
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to connect to RabbitMQ: %v", err)
 	}
 	defer rabbitConn.Close()
 
 	rabbitCh, err := rabbitConn.Channel()
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to open RabbitMQ channel: %v", err)
 	}
 	defer rabbitCh.Close()
 
 	// Events
-	orderCreatedEvent := event.NewOrderCreated()
 	eventDispatcher := events.NewEventDispatcher()
 	orderCreatedHandler := handler.NewOrderCreatedHandler(rabbitCh)
-	eventDispatcher.Register("OrderCreated", orderCreatedHandler)
+	if err := eventDispatcher.Register("OrderCreated", orderCreatedHandler); err != nil {
+		log.Fatalf("failed to register event handler: %v", err)
+	}
 
 	// Repository
 	orderRepo := database.NewOrderRepository(db)
 
-	// Use cases
-	createOrderUseCase := *usecase.NewCreateOrderUseCase(orderRepo, orderCreatedEvent, eventDispatcher)
+	// Use cases — OrderCreated event instantiated per-request inside Execute()
+	createOrderUseCase := *usecase.NewCreateOrderUseCase(orderRepo, eventDispatcher)
 	listOrdersUseCase := *usecase.NewListOrdersUseCase(orderRepo)
 
 	// --- REST Server ---
@@ -90,19 +94,18 @@ func main() {
 	}
 	gqlSrv := graphqlHandler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
-	// Start all 3 servers
-	fmt.Println("Starting REST server on", cfg.WebServerPort)
-	fmt.Printf("Starting gRPC server on :%d\n", cfg.GRPCServerPort)
-	fmt.Printf("Starting GraphQL server on :%d\n", cfg.GraphQLServerPort)
+	log.Printf("REST    listening on %s", cfg.WebServerPort)
+	log.Printf("gRPC    listening on :%d", cfg.GRPCServerPort)
+	log.Printf("GraphQL listening on :%d", cfg.GraphQLServerPort)
 
 	// gRPC in goroutine
 	go func() {
 		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCServerPort))
 		if err != nil {
-			panic(err)
+			log.Fatalf("gRPC listener error: %v", err)
 		}
 		if err := grpcSrv.Serve(lis); err != nil {
-			panic(err)
+			log.Fatalf("gRPC server error: %v", err)
 		}
 	}()
 
@@ -113,7 +116,7 @@ func main() {
 		r.Handle("/", playground.Handler("GraphQL Playground", "/query"))
 		r.Handle("/query", gqlSrv)
 		if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.GraphQLServerPort), r); err != nil {
-			panic(err)
+			log.Fatalf("GraphQL server error: %v", err)
 		}
 	}()
 

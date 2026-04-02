@@ -26,8 +26,8 @@ func NewOrderGrpcService(
 func (s *OrderGrpcService) CreateOrder(ctx context.Context, in *pb.CreateOrderRequest) (*pb.CreateOrderResponse, error) {
 	dto := usecase.OrderInputDTO{
 		ID:    in.Id,
-		Price: float64(in.Price),
-		Tax:   float64(in.Tax),
+		Price: in.Price,
+		Tax:   in.Tax,
 	}
 	output, err := s.CreateOrderUseCase.Execute(dto)
 	if err != nil {
@@ -35,9 +35,9 @@ func (s *OrderGrpcService) CreateOrder(ctx context.Context, in *pb.CreateOrderRe
 	}
 	return &pb.CreateOrderResponse{
 		Id:         output.ID,
-		Price:      float32(output.Price),
-		Tax:        float32(output.Tax),
-		FinalPrice: float32(output.FinalPrice),
+		Price:      output.Price,
+		Tax:        output.Tax,
+		FinalPrice: output.FinalPrice,
 	}, nil
 }
 
@@ -50,9 +50,9 @@ func (s *OrderGrpcService) ListOrders(ctx context.Context, in *pb.ListOrdersRequ
 	for _, o := range output {
 		orders = append(orders, &pb.CreateOrderResponse{
 			Id:         o.ID,
-			Price:      float32(o.Price),
-			Tax:        float32(o.Tax),
-			FinalPrice: float32(o.FinalPrice),
+			Price:      o.Price,
+			Tax:        o.Tax,
+			FinalPrice: o.FinalPrice,
 		})
 	}
 	return &pb.ListOrdersResponse{Orders: orders}, nil

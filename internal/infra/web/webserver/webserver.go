@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -37,5 +38,7 @@ func (s *WebServer) AddHandler(method, path string, handler http.HandlerFunc) {
 
 func (s *WebServer) Start() {
 	s.Router.Use(middleware.Logger)
-	http.ListenAndServe(s.WebServerPort, s.Router)
+	if err := http.ListenAndServe(s.WebServerPort, s.Router); err != nil {
+		log.Fatalf("REST server error: %v", err)
+	}
 }

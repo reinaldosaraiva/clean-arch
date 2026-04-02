@@ -59,7 +59,7 @@ var _ = sync.WaitGroup{}
 
 func TestWebOrderHandler_Create(t *testing.T) {
 	repo := &MockOrderRepository{}
-	uc := *usecase.NewCreateOrderUseCase(repo, &MockEvent{}, &MockDispatcher{})
+	uc := *usecase.NewCreateOrderUseCase(repo, &MockDispatcher{})
 	handler := NewWebOrderHandler(uc)
 
 	body := `{"ID":"order-1","Price":100.0,"Tax":10.0}`
