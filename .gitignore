@@ -1,0 +1,28 @@
+# Binaries
+server
+*.exe
+*.out
+
+# Environment
+.env
+*.env.local
+
+# Docker volumes
+.docker/
+
+# Go build cache
+vendor/
+
+# Wire generated (optional — some teams commit this)
+# cmd/ordersystem/wire_gen.go
+
+# GraphQL generated (optional)
+# internal/infra/graph/generated.go
+# internal/infra/graph/model/models_gen.go
+
+# Session logs
+*.txt
+
+# OS
+.DS_Store
+Thumbs.db
