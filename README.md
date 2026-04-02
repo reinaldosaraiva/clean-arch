@@ -1,207 +1,191 @@
-# Clean Architecture — Go
+<div align="center">
 
-Implementação do desafio **Full Cycle — Clean Architecture** em Go.
+# clean-arch
 
-O objetivo é demonstrar o **desacoplamento** da arquitetura: um único use case (`ListOrders`) é exposto simultaneamente por três interfaces de comunicação independentes — REST, gRPC e GraphQL — sem que a camada de domínio conheça nenhuma delas.
+[![Go Version](https://img.shields.io/badge/go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev/dl/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/reinaldosaraiva/clean-arch)](https://goreportcard.com/report/github.com/reinaldosaraiva/clean-arch)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![REST](https://img.shields.io/badge/REST-8000-brightgreen)](#rest)
+[![gRPC](https://img.shields.io/badge/gRPC-50051-blue)](#grpc)
+[![GraphQL](https://img.shields.io/badge/GraphQL-8080-e10098?logo=graphql&logoColor=white)](#graphql)
+
+**Go implementation of the Full Cycle Clean Architecture challenge.**
+
+A single `ListOrders` use case served simultaneously over REST, gRPC, and GraphQL — the domain layer knows none of them.
+
+</div>
 
 ---
 
-## Execução
+## Overview
 
-> Pré-requisito: Docker e Docker Compose instalados.
+clean-arch demonstrates strict layer separation using the Clean Architecture pattern. The domain defines a repository interface. The use cases depend on that interface. Three independent delivery mechanisms — REST, gRPC, and GraphQL — each call the same use case without any shared infrastructure code.
+
+The project ships as a single `docker compose up --build` command: MySQL starts, migrations run, and all three servers come up on their respective ports.
+
+---
+
+## Getting started
+
+Prerequisites: Docker and Docker Compose.
 
 ```bash
+git clone https://github.com/reinaldosaraiva/clean-arch.git
+cd clean-arch
 docker compose up --build
 ```
 
-Esse único comando:
-1. Sobe o MySQL 8.0 e aguarda o healthcheck passar
-2. Executa as migrations automaticamente (`CREATE TABLE orders`)
-3. Inicia a aplicação Go nas três portas simultaneamente
-
-Nenhum outro comando é necessário.
+That is all. The entrypoint script handles MySQL readiness, runs the migration, and starts the server.
 
 ---
 
-## Serviços e portas
-
-| Protocolo | Porta | Endpoints |
-|-----------|-------|-----------|
-| REST      | 8000  | `POST /order` — criar order |
-|           |       | `GET /order` — listar orders |
-| gRPC      | 50051 | `pb.OrderService/CreateOrder` |
-|           |       | `pb.OrderService/ListOrders` |
-| GraphQL   | 8080  | `POST /query` — API |
-|           |       | `GET /` — Playground interativo |
-
----
-
-## Testando cada protocolo
+## Interfaces
 
 ### REST
 
+Port **8000** — Chi router, standard `net/http`.
+
 ```bash
-# Criar uma order
+# Create an order
 curl -s -X POST http://localhost:8000/order \
   -H "Content-Type: application/json" \
-  -d '{"ID":"order-1","Price":100.50,"Tax":10.50}' | jq
+  -d '{"ID":"o1","Price":100.50,"Tax":10.50}' | jq
 
-# Listar todas as orders
+# List all orders
 curl -s http://localhost:8000/order | jq
 ```
 
 ### GraphQL
 
-Acesse o Playground em **http://localhost:8080** e execute:
+Port **8080** — gqlgen, schema-first.
 
-```graphql
-# Criar order
-mutation {
-  createOrder(input: { id: "order-2", price: 200.0, tax: 20.0 }) {
-    id
-    price
-    tax
-    finalPrice
-  }
-}
-
-# Listar orders
-query {
-  listOrders {
-    id
-    price
-    tax
-    finalPrice
-  }
-}
-```
-
-Ou via HTTP direto:
+Open **http://localhost:8080** for the interactive playground.
 
 ```bash
+# Create
 curl -s -X POST http://localhost:8080/query \
   -H "Content-Type: application/json" \
-  -d '{"query":"{ listOrders { id price tax finalPrice } }"}' | jq
+  -d '{"query":"mutation{createOrder(input:{id:\"o2\",price:200,tax:20}){id finalPrice}}"}' | jq
+
+# List
+curl -s -X POST http://localhost:8080/query \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{listOrders{id price tax finalPrice}}"}' | jq
 ```
 
 ### gRPC
 
-Requer [`grpcurl`](https://github.com/fullstorydev/grpcurl) (`brew install grpcurl`):
+Port **50051** — protobuf, server reflection enabled (no `.proto` file needed locally).
+
+Requires [`grpcurl`](https://github.com/fullstorydev/grpcurl):
 
 ```bash
-# Criar order
+# Create
 grpcurl -plaintext \
-  -d '{"id":"order-3","price":50.0,"tax":5.0}' \
+  -d '{"id":"o3","price":50,"tax":5}' \
   localhost:50051 pb.OrderService/CreateOrder
 
-# Listar orders
+# List
 grpcurl -plaintext localhost:50051 pb.OrderService/ListOrders
 ```
 
-> O servidor gRPC tem reflection habilitada, então `grpcurl` funciona sem precisar do arquivo `.proto`.
-
 ---
 
-## Arquitetura
+## Architecture
 
-O projeto segue **Clean Architecture** com separação estrita entre camadas. A regra central é que o domínio nunca depende de infraestrutura.
+The dependency rule is enforced at every layer: outer rings import inner rings, never the reverse.
 
 ```
-cmd/ordersystem/
-  main.go              # Wiring manual: MySQL, RabbitMQ, UseCases, 3 servidores
+┌──────────────────────────────────────────────────────────┐
+│  Delivery (infra)                                        │
+│  ┌─────────┐   ┌──────────┐   ┌───────────────────────┐ │
+│  │  REST   │   │   gRPC   │   │       GraphQL         │ │
+│  └────┬────┘   └────┬─────┘   └──────────┬────────────┘ │
+│       │             │                    │               │
+│       └─────────────┴────────────────────┘               │
+│                          │                               │
+│                          ▼                               │
+│  ┌───────────────────────────────────────────────────┐   │
+│  │  Use Cases                                        │   │
+│  │  CreateOrderUseCase · ListOrdersUseCase           │   │
+│  └────────────────────────┬──────────────────────────┘   │
+│                           │                              │
+│                           ▼                              │
+│  ┌───────────────────────────────────────────────────┐   │
+│  │  Domain                                           │   │
+│  │  Order entity · OrderRepositoryInterface          │   │
+│  └───────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────┘
+                           │
+                           ▼ (implements)
+               ┌───────────────────────┐
+               │  MySQL Repository     │
+               │  (infra/database)     │
+               └───────────────────────┘
+```
 
-configs/
-  config.go            # Carrega variáveis de ambiente via Viper
+### Directory structure
 
+```
+cmd/ordersystem/        Wiring: DB, RabbitMQ, use cases, three servers
+configs/                Viper-based environment config
 internal/
-  entity/
-    order.go           # Entidade Order com validação e CalculateFinalPrice
-    interface.go       # OrderRepositoryInterface (Save, GetTotal, GetAll)
-
-  usecase/
-    create_order.go    # CreateOrderUseCase — salva e emite evento OrderCreated
-    list_orders.go     # ListOrdersUseCase — delega ao repositório
-
-  event/
-    order_created.go              # Evento de domínio OrderCreated
-    handler/order_created_handler.go  # Publica no RabbitMQ
-
+  entity/               Domain: Order, Validate, CalculateFinalPrice
+  usecase/              Application: CreateOrder, ListOrders
   infra/
-    database/
-      order_repository.go  # MySQL: Save, GetTotal, GetAll
-
-    web/
-      order_handler.go     # Handlers REST (POST e GET /order)
-      webserver/           # Chi router
-
-    grpc/
-      protofiles/order.proto   # Definição do serviço gRPC
-      pb/                      # Código gerado pelo protoc
-      service/order_service.go # Implementação dos RPCs
-
-    graph/
-      schema.graphqls      # Schema GraphQL
-      schema.resolvers.go  # Resolvers (createOrder, listOrders)
-      generated.go         # Gerado pelo gqlgen
-
-pkg/events/
-  event_dispatcher.go    # Dispatcher assíncrono com goroutines
-
-migrations/
-  001_create_orders.sql  # CREATE TABLE orders
-
-scripts/
-  entrypoint.sh          # Aguarda MySQL, roda migrations, inicia app
+    database/           MySQL: Save, GetTotal, GetAll
+    web/                REST handlers (Chi)
+    grpc/               gRPC service + protobuf definitions
+    graph/              GraphQL resolvers + gqlgen schema
+  event/                Domain event: OrderCreated
+pkg/events/             Async event dispatcher (goroutines + WaitGroup)
+migrations/             SQL: CREATE TABLE orders
+scripts/                entrypoint.sh: wait → migrate → exec
 ```
 
-### Fluxo de uma requisição ListOrders
+### Key design decisions
 
-```
-Cliente (REST / gRPC / GraphQL)
-        │
-        ▼
-   Handler (infra)          ← conhece o UseCase, não o domínio
-        │
-        ▼
-  ListOrdersUseCase         ← conhece a interface do repositório
-        │
-        ▼
-  OrderRepositoryInterface  ← definida no domínio
-        │
-        ▼
-  OrderRepository (MySQL)   ← implementação concreta na infra
-```
+- **OrderRepositoryInterface** is defined in `internal/entity/` — the domain owns the contract, not the infra.
+- **CreateOrderUseCase** instantiates a new `OrderCreated` event per call to avoid shared-state race conditions under concurrency.
+- **gRPC proto fields** use `double` instead of `float` to preserve financial precision across wire serialization.
+- **entrypoint.sh** uses `mysqladmin ping` in a loop so the app never starts before MySQL is ready, removing the need for `depends_on: condition: service_healthy` hacks.
 
 ---
 
-## Variáveis de ambiente
+## Configuration
 
-Todas as configurações são injetadas via variáveis de ambiente (veja `.env.example`). Dentro do Docker, o `docker-compose.yaml` já define todos os valores necessários.
+All values are provided via environment variables. `docker-compose.yaml` sets them all — no `.env` file is required to run the project.
 
-| Variável | Padrão | Descrição |
-|----------|--------|-----------|
-| `DB_DRIVER` | `mysql` | Driver do banco |
-| `DB_HOST` | `mysql` | Host do MySQL |
-| `DB_PORT` | `3306` | Porta do MySQL |
-| `DB_USER` | `root` | Usuário |
-| `DB_PASSWORD` | `root` | Senha |
-| `DB_NAME` | `orders` | Nome do banco |
-| `WEB_SERVER_PORT` | `:8000` | Porta REST |
-| `GRPC_SERVER_PORT` | `50051` | Porta gRPC |
-| `GRAPHQL_SERVER_PORT` | `8080` | Porta GraphQL |
-| `RABBITMQ_DSN` | `amqp://guest:guest@rabbitmq:5672/` | DSN do RabbitMQ |
+| Variable | Default | |
+|---|---|---|
+| `DB_DRIVER` | `mysql` | Database driver |
+| `DB_HOST` | `mysql` | MySQL hostname |
+| `DB_PORT` | `3306` | MySQL port |
+| `DB_USER` | `root` | MySQL user |
+| `DB_PASSWORD` | `root` | MySQL password |
+| `DB_NAME` | `orders` | Database name |
+| `WEB_SERVER_PORT` | `:8000` | REST listen address |
+| `GRPC_SERVER_PORT` | `50051` | gRPC listen port |
+| `GRAPHQL_SERVER_PORT` | `8080` | GraphQL listen port |
+| `RABBITMQ_DSN` | `amqp://guest:guest@rabbitmq:5672/` | RabbitMQ connection string |
 
 ---
 
-## Tecnologias
+## Stack
 
-| Tecnologia | Uso |
-|------------|-----|
-| Go 1.25 | Linguagem |
-| MySQL 8.0 | Banco de dados |
-| RabbitMQ 3 | Mensageria (evento OrderCreated) |
-| Chi | Router HTTP |
-| gRPC / protobuf | Comunicação gRPC |
-| gqlgen | Geração de código GraphQL |
-| Viper | Configuração via env |
-| Docker / Compose | Infraestrutura |
+| Component | Technology |
+|---|---|
+| Language | Go 1.25 |
+| Database | MySQL 8.0 |
+| Messaging | RabbitMQ 3 — [`amqp091-go`](https://github.com/rabbitmq/amqp091-go) |
+| HTTP router | [Chi](https://github.com/go-chi/chi) |
+| gRPC | [`google.golang.org/grpc`](https://pkg.go.dev/google.golang.org/grpc) + protobuf |
+| GraphQL | [gqlgen](https://github.com/99designs/gqlgen) (schema-first) |
+| Config | [Viper](https://github.com/spf13/viper) |
+| Container | Docker multi-stage + Compose |
+
+---
+
+## License
+
+MIT
